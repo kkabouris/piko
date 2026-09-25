@@ -296,6 +296,51 @@ val disableTimelineRefreshPatch =
             val timelineEnumDescriptor = timelineGetter.returnType.toString()
             val repositoryTimelineGetterReference =
                 "$repoDescriptor->${timelineGetter.name}()$timelineEnumDescriptor"
+            //kkab 25/06/2026
+
+            val timelineIdentityGetterMatches =
+    repositoryClass.methods.filter { method ->
+        val returnType = method.returnType.toString()
+        method.parameterTypes.isEmpty() &&
+            returnType.startsWith("Lcom/x/models/timelines/") &&
+            returnType != timelineEnumDescriptor &&
+            runCatching {
+                mutableClassDefBy(returnType).fields.count { field ->
+                    field.type.toString() == "Ljava/lang/String;"
+                } == 1
+            }.getOrDefault(false)
+    }
+
+if (timelineIdentityGetterMatches.size != 1) {
+    throw PatchException(
+        "Expected one NewX timeline identity getter on $repoDescriptor, " +
+            "found ${timelineIdentityGetterMatches.size}"
+    )
+}
+
+val timelineIdentityGetter = timelineIdentityGetterMatches.single()
+val timelineIdentityDescriptor = timelineIdentityGetter.returnType.toString()
+
+val repositoryTimelineIdentityGetterReference =
+    "$repoDescriptor->${timelineIdentityGetter.name}()" +
+        timelineIdentityDescriptor
+
+val timelineIdentityFields =
+    mutableClassDefBy(timelineIdentityDescriptor).fields.filter { field ->
+        field.type.toString() == "Ljava/lang/String;"
+    }
+
+if (timelineIdentityFields.size != 1) {
+    throw PatchException(
+        "Expected one NewX timeline identity String field, " +
+            "found ${timelineIdentityFields.size}"
+    )
+}
+
+val timelineIdentityFieldReference =
+    timelineIdentityFields.single().toString()
+
+            //kkab 25/06/2026
             val flowGetterCandidates =
                 repositoryClass.methods.mapNotNull { method ->
                     val flowDescriptor = method.returnType.toString()
@@ -419,8 +464,13 @@ val disableTimelineRefreshPatch =
                         if-nez v$settingRegister, :piko_newx_refresh_urt_check_position
                         return-void
                         :piko_newx_refresh_urt_check_position
-                        invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->restore($ENUM_DESCRIPTOR)[I
+
+                        invoke-virtual {p0}, $repositoryTimelineIdentityGetterReference
                         move-result-object v$settingRegister
+                        iget-object v$settingRegister, v$settingRegister, $timelineIdentityFieldReference
+                        invoke-static {v$timelineRegister, v$settingRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->restore(${ENUM_DESCRIPTOR}Ljava/lang/String;)[I
+                        move-result-object v$settingRegister
+                        
                         if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
                         sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
                         goto :piko_newx_refresh_urt_continue
