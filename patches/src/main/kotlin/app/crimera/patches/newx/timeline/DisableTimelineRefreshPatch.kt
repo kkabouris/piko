@@ -436,45 +436,74 @@ val timelineIdentityFieldReference =
                 // position changes that load to viewport-aware refresh so it cannot jump to top.
                 addInstructionsWithLabels(
                     read.nextIndex,
-                    """
-                        if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
-                        if-nez p2, :piko_newx_refresh_urt_continue
-                        sget-object v$settingRegister, $repositoryAutoRefreshFieldReference
-                        if-ne p1, v$settingRegister, :piko_newx_refresh_urt_continue
-                        invoke-virtual {p0}, $repositoryTimelineGetterReference
-                        move-result-object v$timelineRegister
-                       
-                        invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->isPersistentFeedTimeline($ENUM_DESCRIPTOR)Z
-                        move-result v$settingRegister
-                        if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
-                        :piko_newx_refresh_urt_suppress
-           
-                        invoke-static {}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->consumePostDeepLink()Z
-                        move-result v$settingRegister
-                        if-nez v$settingRegister, :piko_newx_refresh_urt_continue
-                        invoke-static {}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->consumeForYouFilterRefresh()Z
-                        move-result v$settingRegister
-                        if-nez v$settingRegister, :piko_newx_refresh_urt_continue
-                        invoke-virtual {p0}, $repositoryTimelineDataGetterReference
-                        move-result-object v$settingRegister
-                        invoke-interface {v$settingRegister}, $timelineDataFlowListGetterReference
-                        move-result-object v$settingRegister
-                        invoke-static {v$settingRegister}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->isTimelineDataEmpty(Ljava/util/List;)Z
-                        move-result v$settingRegister
-                        if-nez v$settingRegister, :piko_newx_refresh_urt_check_position
-                        return-void
-                        :piko_newx_refresh_urt_check_position
+                    
+                    //kkab 25/09/2026
+                    
+"""
+    if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
 
-                        invoke-virtual {p0}, $repositoryTimelineIdentityGetterReference
-                        move-result-object v$settingRegister
-                        iget-object v$settingRegister, v$settingRegister, $timelineIdentityFieldReference
-                        invoke-static {v$timelineRegister, v$settingRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->restore(${ENUM_DESCRIPTOR}Ljava/lang/String;)[I
-                        move-result-object v$settingRegister
-                        
-                        if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
-                        sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
-                        goto :piko_newx_refresh_urt_continue
-                    """.trimIndent(),
+    sget-object v$settingRegister, $repositoryAutoRefreshFieldReference
+    if-ne p1, v$settingRegister, :piko_newx_refresh_urt_continue
+
+    invoke-virtual {p0}, $repositoryTimelineGetterReference
+    move-result-object v$timelineRegister
+
+    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->isPersistentFeedTimeline($ENUM_DESCRIPTOR)Z
+    move-result v$settingRegister
+    if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
+
+    # A non-null cursor is the native/user refresh path.
+    # Home timelines already manage this correctly in memory.
+    # Persistent secondary timelines (Lists) must use the saved
+    # position and viewport-aware refresh instead.
+    if-eqz p2, :piko_newx_refresh_urt_suppress
+
+    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->useInMemoryPosition($ENUM_DESCRIPTOR)Z
+    move-result v$settingRegister
+    if-nez v$settingRegister, :piko_newx_refresh_urt_continue
+
+    goto :piko_newx_refresh_urt_check_position
+
+    :piko_newx_refresh_urt_suppress
+
+    invoke-static {}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->consumePostDeepLink()Z
+    move-result v$settingRegister
+    if-nez v$settingRegister, :piko_newx_refresh_urt_continue
+
+    invoke-static {}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->consumeForYouFilterRefresh()Z
+    move-result v$settingRegister
+    if-nez v$settingRegister, :piko_newx_refresh_urt_continue
+
+    invoke-virtual {p0}, $repositoryTimelineDataGetterReference
+    move-result-object v$settingRegister
+
+    invoke-interface {v$settingRegister}, $timelineDataFlowListGetterReference
+    move-result-object v$settingRegister
+
+    invoke-static {v$settingRegister}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->isTimelineDataEmpty(Ljava/util/List;)Z
+    move-result v$settingRegister
+    if-nez v$settingRegister, :piko_newx_refresh_urt_check_position
+
+    return-void
+
+    :piko_newx_refresh_urt_check_position
+
+    invoke-virtual {p0}, $repositoryTimelineIdentityGetterReference
+    move-result-object v$settingRegister
+
+    iget-object v$settingRegister, v$settingRegister, $timelineIdentityFieldReference
+
+    invoke-static {v$timelineRegister, v$settingRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->restore(${ENUM_DESCRIPTOR}Ljava/lang/String;)[I
+    move-result-object v$settingRegister
+
+    if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
+
+    sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
+    goto :piko_newx_refresh_urt_continue
+""".trimIndent(),
+                    
+                    //kkab 25/09/2026
+                    
                     ExternalLabel(
                         "piko_newx_refresh_urt_continue",
                         originalFirstInstruction,
