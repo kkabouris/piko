@@ -21,6 +21,9 @@ public final class TimelineScrollPositionStore {
     private static final String INDEX_SUFFIX = ".index";
     private static final String OFFSET_SUFFIX = ".offset";
     private static final String PROFILE_KEY_PREFIX = "profile.";
+    //kkab 25/09/2026
+    private static final String LIST_KEY_PREFIX = "list.";
+    //kkab 25/09/2026
     private static final Object SAVE_LOCK = new Object();
     private static volatile SharedPreferences cachedPreferences;
     private static SharedPreferences lastSavedPreferences;
