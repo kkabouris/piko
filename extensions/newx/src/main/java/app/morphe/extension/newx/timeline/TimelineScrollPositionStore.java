@@ -397,4 +397,15 @@ private static boolean isListTimeline(String timelineName) {
             return cached;
         }
     }
+
+
+    //kkab 25/06/2026
+    public static boolean isPersistentFeedTimeline(Enum<?> timeline) {
+    String timelineName = timeline == null ? null : timeline.name();
+
+    return timelineName != null
+            && (isHomeTimeline(timelineName) || isListTimeline(timelineName));
+}
+    //kkab 25/06/2026
+    
 }
