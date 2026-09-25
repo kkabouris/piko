@@ -398,14 +398,12 @@ val disableTimelineRefreshPatch =
                         if-ne p1, v$settingRegister, :piko_newx_refresh_urt_continue
                         invoke-virtual {p0}, $repositoryTimelineGetterReference
                         move-result-object v$timelineRegister
-                        sget-object v$settingRegister, $timelineEnumDescriptor->FOR_YOU:$timelineEnumDescriptor
-                        if-eq v$timelineRegister, v$settingRegister, :piko_newx_refresh_urt_suppress
-                        sget-object v$settingRegister, $timelineEnumDescriptor->FOLLOWING:$timelineEnumDescriptor
-                        if-eq v$timelineRegister, v$settingRegister, :piko_newx_refresh_urt_suppress
-                        sget-object v$settingRegister, $timelineEnumDescriptor->RANKED_FOLLOWING:$timelineEnumDescriptor
-                        if-eq v$timelineRegister, v$settingRegister, :piko_newx_refresh_urt_suppress
-                        goto :piko_newx_refresh_urt_continue
+                       
+                        invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->isPersistentFeedTimeline($ENUM_DESCRIPTOR)Z
+                        move-result v$settingRegister
+                        if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
                         :piko_newx_refresh_urt_suppress
+           
                         invoke-static {}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->consumePostDeepLink()Z
                         move-result v$settingRegister
                         if-nez v$settingRegister, :piko_newx_refresh_urt_continue
