@@ -302,7 +302,7 @@ public final class TimelineScrollPositionStore {
         }
         return useInMemory;
     }
-
+/* kkab 25/06/2026
     static String storageKey(
             @Nullable String timelineName,
             @Nullable String profileId,
@@ -319,6 +319,55 @@ public final class TimelineScrollPositionStore {
         if (trimmedProfileId.isEmpty()) return null;
         return PROFILE_KEY_PREFIX + timelineName + "." + trimmedProfileId;
     }
+*/
+    static String storageKey(
+        @Nullable String timelineName,
+        @Nullable String timelineIdentity,
+        boolean restoreTimelinePosition,
+        boolean restoreProfilePosition
+) {
+    if (timelineName == null) return null;
+
+    // Main Home timelines have only one instance each.
+    if (isHomeTimeline(timelineName)) {
+        return restoreTimelinePosition ? timelineName : null;
+    }
+
+    // Profile timelines already need their identity because several
+    // different profiles share the same timeline type.
+    if (timelineName.startsWith("USER_PROFILE_")) {
+        if (!restoreProfilePosition) return null;
+
+        String identity = normalizeIdentity(timelineIdentity);
+        if (identity == null) return null;
+
+        return PROFILE_KEY_PREFIX + timelineName + "." + identity;
+    }
+
+    // Lists also have multiple instances sharing a timeline type.
+    // Give every List its own persistent position automatically.
+    if (restoreTimelinePosition && isListTimeline(timelineName)) {
+        String identity = normalizeIdentity(timelineIdentity);
+        if (identity == null) return null;
+
+        return LIST_KEY_PREFIX + timelineName + "." + identity;
+    }
+
+    return null;
+}
+
+@Nullable
+private static String normalizeIdentity(@Nullable String identity) {
+    if (identity == null) return null;
+
+    String trimmed = identity.trim();
+    return trimmed.isEmpty() ? null : trimmed;
+}
+
+private static boolean isListTimeline(String timelineName) {
+    return timelineName.contains("LIST");
+}
+//kkab 25/06/2026
 
     private static boolean isHomeTimeline(String timelineName) {
         return "FOR_YOU".equals(timelineName) || "FOLLOWING".equals(timelineName)
