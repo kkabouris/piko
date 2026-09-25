@@ -296,7 +296,14 @@ public final class TimelineScrollPositionStore {
      */
     public static boolean useInMemoryPosition(Enum<?> timeline) {
         String timelineName = timeline == null ? null : timeline.name();
+        //kkab 26/06/2026
+        /*
         boolean useInMemory = timelineName != null && !timelineName.startsWith("USER_PROFILE_");
+        */
+        boolean useInMemory = timelineName != null
+        && !timelineName.startsWith("USER_PROFILE_")
+        && !isListTimeline(timelineName);
+        //kkab 26/06/2026
         if (NewXLogger.isLoggingEnabled()) {
             NewXLogger.logger("NewX in-memory timeline=" + timelineName + " useInMemory=" + useInMemory);
         }
