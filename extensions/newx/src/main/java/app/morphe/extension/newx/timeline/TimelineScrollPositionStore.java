@@ -22,6 +22,7 @@ public final class TimelineScrollPositionStore {
     private static final String OFFSET_SUFFIX = ".offset";
     private static final String PROFILE_KEY_PREFIX = "profile.";
     //kkab 25/09/2026
+    private static final String SECONDARY_KEY_PREFIX = "secondary.";
     private static final String LIST_KEY_PREFIX = "list.";
     //kkab 25/09/2026
     private static final Object SAVE_LOCK = new Object();
@@ -327,40 +328,36 @@ public final class TimelineScrollPositionStore {
         return PROFILE_KEY_PREFIX + timelineName + "." + trimmedProfileId;
     }
 */
-    static String storageKey(
+static String storageKey(
         @Nullable String timelineName,
-        @Nullable String timelineIdentity,
+        @Nullable String profileId,
         boolean restoreTimelinePosition,
         boolean restoreProfilePosition
 ) {
     if (timelineName == null) return null;
 
-    // Main Home timelines have only one instance each.
+    // Home timelines have one global position per type.
     if (isHomeTimeline(timelineName)) {
         return restoreTimelinePosition ? timelineName : null;
     }
 
-    // Profile timelines already need their identity because several
-    // different profiles share the same timeline type.
+    if (profileId == null) return null;
+
+    String trimmedIdentity = profileId.trim();
+    if (trimmedIdentity.isEmpty()) return null;
+
+    // Profiles keep their existing opt-in behaviour and are scoped by profile ID.
     if (timelineName.startsWith("USER_PROFILE_")) {
-        if (!restoreProfilePosition) return null;
-
-        String identity = normalizeIdentity(timelineIdentity);
-        if (identity == null) return null;
-
-        return PROFILE_KEY_PREFIX + timelineName + "." + identity;
+        return restoreProfilePosition
+                ? PROFILE_KEY_PREFIX + timelineName + "." + trimmedIdentity
+                : null;
     }
 
-    // Lists also have multiple instances sharing a timeline type.
-    // Give every List its own persistent position automatically.
-    if (restoreTimelinePosition && isListTimeline(timelineName)) {
-        String identity = normalizeIdentity(timelineIdentity);
-        if (identity == null) return null;
-
-        return LIST_KEY_PREFIX + timelineName + "." + identity;
-    }
-
-    return null;
+    // Every other timeline gets a fallback scoped by its own identity.
+    // X's native in-memory holder remains preferred while it exists.
+    return restoreTimelinePosition
+            ? SECONDARY_KEY_PREFIX + timelineName + "." + trimmedIdentity
+            : null;
 }
 
 @Nullable
