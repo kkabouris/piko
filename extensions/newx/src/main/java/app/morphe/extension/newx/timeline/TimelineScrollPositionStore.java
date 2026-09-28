@@ -352,6 +352,13 @@ public final class TimelineScrollPositionStore {
 ) {
     String timelineName = timeline == null ? null : timeline.name();
 
+        if (NewXLogger.isLoggingEnabled()) {
+    NewXLogger.logger(
+            "NewX scoped-enter timeline=" + timelineName
+                    + " identity=" + identity
+    );
+}
+
     if (timelineName == null) {
         return false;
     }
