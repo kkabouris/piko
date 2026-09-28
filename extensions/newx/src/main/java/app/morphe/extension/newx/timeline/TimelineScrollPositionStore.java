@@ -15,6 +15,7 @@ import app.morphe.extension.newx.settings.SettingsRegistry;
 //kkab 28/09/2026
 import java.util.concurrent.ConcurrentHashMap;
 import android.util.Log;
+import androidx.annotation.Nullable;
 //kkab 28/09/2026
 
 public final class TimelineScrollPositionStore {
@@ -301,9 +302,9 @@ public final class TimelineScrollPositionStore {
     
     //kkab 28/09/2026
     
-    public static void logRefreshRequest(
+public static void logRefreshRequest(
         Object requestType,
-        @Nullable Object cursor
+        @Nullable Object argument
 ) {
     if (!NewXLogger.isLoggingEnabled()) return;
 
@@ -314,7 +315,6 @@ public final class TimelineScrollPositionStore {
         requestName = String.valueOf(requestType);
     }
 
-    // We only care about refresh-like requests for this diagnostic build.
     if (!requestName.contains("REFRESH")) return;
 
     NewXLogger.logger(
@@ -326,7 +326,6 @@ public final class TimelineScrollPositionStore {
                     : argument.getClass().getName())
     );
 }
-
         //kkab 28/09/2026
 
     /**
