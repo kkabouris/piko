@@ -478,7 +478,32 @@ val timelineIdentityFieldReference =
 """
     if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
 
-    invoke-static/range {p1 .. p2}, $TIMELINE_POSITION_STORE_DESCRIPTOR->logRefreshRequest(Ljava/lang/Object;Ljava/lang/Object;)V
+    # Manual pull-to-refresh on secondary/List timelines currently rebuilds
+    # the timeline from index 0. Route only those timelines through X's
+    # viewport-aware refresh mode. Home timelines keep native behaviour.
+    sget-object v$settingRegister, $repositoryPullToRefreshFieldReference
+    if-ne p1, v$settingRegister, :piko_newx_refresh_urt_check_auto
+
+    invoke-virtual {p0}, $repositoryTimelineGetterReference
+    move-result-object v$timelineRegister
+
+    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->isPersistentFeedTimeline($ENUM_DESCRIPTOR)Z
+    move-result v$settingRegister
+    if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
+
+    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->useInMemoryPosition($ENUM_DESCRIPTOR)Z
+    move-result v$settingRegister
+
+    # FOLLOWING/FOR_YOU/RANKED_FOLLOWING use the native in-memory holder
+    # and already preserve their viewport correctly.
+    if-nez v$settingRegister, :piko_newx_refresh_urt_continue
+
+    # Lists are persistent feeds but deliberately do not trust X's
+    # timeline-type-only in-memory holder.
+    sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
+    goto :piko_newx_refresh_urt_continue
+
+    :piko_newx_refresh_urt_check_auto
 
     sget-object v$settingRegister, $repositoryAutoRefreshFieldReference
     if-ne p1, v$settingRegister, :piko_newx_refresh_urt_continue
