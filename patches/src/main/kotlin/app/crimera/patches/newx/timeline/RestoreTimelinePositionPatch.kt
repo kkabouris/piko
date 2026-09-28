@@ -385,7 +385,10 @@ val restoreTimelinePositionPatch =
                     iget-object v$mapRegister, v$mapOwnerRegister, $mapField
                     invoke-virtual {v$mapRegister, v$timelineRegister}, $CONCURRENT_HASH_MAP_DESCRIPTOR->get(Ljava/lang/Object;)Ljava/lang/Object;
                     move-result-object v$positionsRegister
-                    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->useInMemoryPosition($ENUM_DESCRIPTOR)Z
+                    invoke-interface {v$timelineGetterReceiverRegister}, $timelineIdentityGetterReference
+                    move-result-object v$mapRegister
+                    iget-object v$mapRegister, v$mapRegister, $timelineIdentityFieldReference
+                    invoke-static {v$timelineRegister, v$mapRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->useInMemoryPosition(${ENUM_DESCRIPTOR}Ljava/lang/String;)Z
                     move-result v$mapRegister
                     if-eqz v$mapRegister, :piko_newx_restore_position_ignore_native
                     if-nez v$positionsRegister, :piko_newx_restore_position_continue
