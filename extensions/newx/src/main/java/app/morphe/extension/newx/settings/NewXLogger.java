@@ -118,6 +118,7 @@ public final class NewXLogger {
     if (text.startsWith("NewX restore ")
             || text.startsWith("NewX save ")
             || text.startsWith("NewX in-memory ")
+            || text.startsWith("NewX in-memory-scoped ")
             || text.startsWith("NewX refresh-request "))
     {
         SERVER_LOG_BUFFER.add(sanitizeText(text));
