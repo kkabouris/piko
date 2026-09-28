@@ -116,10 +116,12 @@ public final class NewXLogger {
 
     // Keep only the timeline-position diagnostics in the export buffer.
     if (text.startsWith("NewX restore ")
-            || text.startsWith("NewX save ")
-            || text.startsWith("NewX in-memory ")
-            || text.startsWith("NewX in-memory-scoped ")
-            || text.startsWith("NewX refresh-request "))
+        || text.startsWith("NewX save ")
+        || text.startsWith("NewX in-memory ")
+        || text.startsWith("NewX in-memory-scoped ")
+        || text.startsWith("NewX scoped-enter ")
+        || text.startsWith("NewX refresh-request ")
+        || text.startsWith("NewX PTR-CONVERT "))
     {
         SERVER_LOG_BUFFER.add(sanitizeText(text));
     }
