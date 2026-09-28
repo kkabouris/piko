@@ -135,6 +135,74 @@ private object NewXUrtAutoRefreshEventFingerprint : Fingerprint(
     },
 )
 
+//kkab 28/09/2026
+
+private object NewXUrtPullToRefreshEventFingerprint : Fingerprint(
+    definingClass = "Lcom/x/urt/",
+    parameters = listOf("L"),
+    returnType = "V",
+    filters =
+        listOf(
+            fieldAccess(
+                opcode = Opcode.SGET_OBJECT,
+                name = "PULL_TO_REFRESH",
+                type = "L",
+            ),
+            methodCall(
+                opcode = Opcode.INVOKE_INTERFACE,
+                definingClass = URT_REPOSITORY_PACKAGE,
+                parameters = listOf("L", "L"),
+                returnType = "V",
+            ),
+        ),
+    custom = { method, _ ->
+        val instructions = method.implementation?.instructions?.toList().orEmpty()
+
+        val pullRefreshFieldReads =
+            instructions.mapIndexedNotNull { index, instruction ->
+                if (instruction.opcode != Opcode.SGET_OBJECT) {
+                    return@mapIndexedNotNull null
+                }
+
+                val reference =
+                    instruction.getReference<
+                        com.android.tools.smali.dexlib2.iface.reference.FieldReference
+                    >() ?: return@mapIndexedNotNull null
+
+                index.takeIf {
+                    reference.name == "PULL_TO_REFRESH" &&
+                        reference.type.toString().startsWith("L")
+                }
+            }
+
+        val refreshRequestCalls =
+            instructions.mapIndexedNotNull { index, instruction ->
+                if (instruction.opcode != Opcode.INVOKE_INTERFACE) {
+                    return@mapIndexedNotNull null
+                }
+
+                val reference =
+                    instruction.getReference<MethodReference>()
+                        ?: return@mapIndexedNotNull null
+
+                index.takeIf {
+                    reference.definingClass.startsWith(URT_REPOSITORY_PACKAGE) &&
+                        reference.parameterTypes.size == 2 &&
+                        reference.parameterTypes.all {
+                            it.toString().startsWith("L")
+                        } &&
+                        reference.returnType.toString() == "V"
+                }
+            }
+
+        pullRefreshFieldReads.size == 1 &&
+            refreshRequestCalls.size == 1
+    },
+)
+
+//kkab 28/09/2026
+
+
 @Suppress("unused")
 val disableTimelineRefreshPatch =
     bytecodePatch(
@@ -447,11 +515,71 @@ val timelineIdentityFieldReference =
             val repositoryAutoRefreshFieldReference =
                 "$requestTypeDescriptor->AUTO_REFRESH:$requestTypeDescriptor"
             // kkab 28/09/2026
-            val repositoryPullToRefreshFieldReference =
-                "$requestTypeDescriptor->PULL_TO_REFRESH:$requestTypeDescriptor"
-            // kkab 28/09/2026
+
+
             val repositoryViewportAwareAutoRefreshFieldReference =
                 "$requestTypeDescriptor->VIEWPORT_AWARE_AUTO_REFRESH:$requestTypeDescriptor"
+            val pullRefreshEventMatches =
+    NewXUrtPullToRefreshEventFingerprint.scopedMatchAll()
+
+if (pullRefreshEventMatches.size != 1) {
+    throw PatchException(
+        "Expected one NewX URT pull-to-refresh event handler, found " +
+            "${pullRefreshEventMatches.size}: " +
+            pullRefreshEventMatches.joinToString {
+                it.originalMethod.toString()
+            },
+    )
+}
+
+val pullRefreshEventMethod =
+    pullRefreshEventMatches.single().method
+
+val pullRefreshFieldCandidates =
+    pullRefreshEventMethod.instructions
+        .withIndex()
+        .filter { indexedInstruction ->
+            if (indexedInstruction.value.opcode != Opcode.SGET_OBJECT) {
+                return@filter false
+            }
+
+            val reference =
+                indexedInstruction.value.getReference<
+                    com.android.tools.smali.dexlib2.iface.reference.FieldReference
+                >() ?: return@filter false
+
+            reference.name == "PULL_TO_REFRESH" &&
+                reference.type.toString() == requestTypeDescriptor
+        }
+
+if (pullRefreshFieldCandidates.size != 1) {
+    throw PatchException(
+        "Expected one NewX PULL_TO_REFRESH field read, found " +
+            "${pullRefreshFieldCandidates.size}"
+    )
+}
+
+val pullRefreshFieldCandidate =
+    pullRefreshFieldCandidates.single()
+
+val pullRefreshFieldInstruction =
+    pullRefreshFieldCandidate.value as? OneRegisterInstruction
+        ?: throw PatchException(
+            "NewX PULL_TO_REFRESH field read has no register layout"
+        )
+
+val pullRefreshRegister =
+    pullRefreshFieldInstruction.registerA
+
+pullRefreshEventMethod.replaceInstruction(
+    pullRefreshFieldCandidate.index,
+    "sget-object v$pullRefreshRegister, " +
+        repositoryViewportAwareAutoRefreshFieldReference,
+)
+
+            // kkab 28/09/2026
+
+            
             urtRepoMatch.method.apply {
                 val originalFirstInstruction = instructions.first()
                 val read =
@@ -479,98 +607,6 @@ val timelineIdentityFieldReference =
     if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
 
     invoke-static/range {p1 .. p2}, $TIMELINE_POSITION_STORE_DESCRIPTOR->logRefreshRequest(Ljava/lang/Object;Ljava/lang/Object;)V
-
-    # Manual pull-to-refresh on secondary/List timelines currently rebuilds
-    # the timeline from index 0. Route only those timelines through X's
-    # viewport-aware refresh mode. Home timelines keep native behaviour.
-    sget-object v$settingRegister, $repositoryPullToRefreshFieldReference
-    if-ne p1, v$settingRegister, :piko_newx_refresh_urt_check_auto
-
-    invoke-virtual {p0}, $repositoryTimelineGetterReference
-    move-result-object v$timelineRegister
-
-    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->isPersistentFeedTimeline($ENUM_DESCRIPTOR)Z
-    move-result v$settingRegister
-    if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
-
-    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->useInMemoryPosition($ENUM_DESCRIPTOR)Z
-    move-result v$settingRegister
-
-    # FOLLOWING/FOR_YOU/RANKED_FOLLOWING use the native in-memory holder
-    # and already preserve their viewport correctly.
-    if-nez v$settingRegister, :piko_newx_refresh_urt_continue
-
-    # Lists are persistent feeds but deliberately do not trust X's
-    # timeline-type-only in-memory holder.
-    sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
-
-    const-string v$settingRegister, "NewX PTR-CONVERT PULL_TO_REFRESH -> VIEWPORT_AWARE_AUTO_REFRESH"
-    invoke-static {v$settingRegister}, Lapp/morphe/extension/newx/settings/NewXLogger;->logger(Ljava/lang/Object;)V
-
-    goto :piko_newx_refresh_urt_continue
-
-    :piko_newx_refresh_urt_check_auto
-
-    sget-object v$settingRegister, $repositoryAutoRefreshFieldReference
-    if-ne p1, v$settingRegister, :piko_newx_refresh_urt_continue
-
-    invoke-virtual {p0}, $repositoryTimelineGetterReference
-    move-result-object v$timelineRegister
-
-    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->isPersistentFeedTimeline($ENUM_DESCRIPTOR)Z
-    move-result v$settingRegister
-    if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
-
-    # A non-null cursor is the native/user refresh path.
-    # Home timelines already manage this correctly in memory.
-    # Persistent secondary timelines (Lists) must use the saved
-    # position and viewport-aware refresh instead.
-    if-eqz p2, :piko_newx_refresh_urt_suppress
-
-    invoke-static {v$timelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->useInMemoryPosition($ENUM_DESCRIPTOR)Z
-    move-result v$settingRegister
-    if-nez v$settingRegister, :piko_newx_refresh_urt_continue
-
-    goto :piko_newx_refresh_urt_check_position
-
-    :piko_newx_refresh_urt_suppress
-
-    invoke-static {}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->consumePostDeepLink()Z
-    move-result v$settingRegister
-    if-nez v$settingRegister, :piko_newx_refresh_urt_continue
-
-    invoke-static {}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->consumeForYouFilterRefresh()Z
-    move-result v$settingRegister
-    if-nez v$settingRegister, :piko_newx_refresh_urt_continue
-
-    invoke-virtual {p0}, $repositoryTimelineDataGetterReference
-    move-result-object v$settingRegister
-
-    invoke-interface {v$settingRegister}, $timelineDataFlowListGetterReference
-    move-result-object v$settingRegister
-
-    invoke-static {v$settingRegister}, $TIMELINE_REFRESH_GATE_DESCRIPTOR->isTimelineDataEmpty(Ljava/util/List;)Z
-    move-result v$settingRegister
-    if-nez v$settingRegister, :piko_newx_refresh_urt_check_position
-
-    return-void
-
-    :piko_newx_refresh_urt_check_position
-
-    invoke-virtual {p0}, $repositoryTimelineIdentityGetterReference
-    move-result-object v$settingRegister
-
-    iget-object v$settingRegister, v$settingRegister, $timelineIdentityFieldReference
-
-    invoke-static {v$timelineRegister, v$settingRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->restore(${ENUM_DESCRIPTOR}Ljava/lang/String;)[I
-    move-result-object v$settingRegister
-
-    if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
-
-    sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
-
-    const-string v$settingRegister, "NewX AUTO-CONVERT AUTO_REFRESH -> VIEWPORT_AWARE_AUTO_REFRESH"
-    invoke-static {v$settingRegister}, Lapp/morphe/extension/newx/settings/NewXLogger;->logger(Ljava/lang/Object;)V
 
     goto :piko_newx_refresh_urt_continue
 """.trimIndent(),
