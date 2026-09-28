@@ -389,10 +389,19 @@ public final class TimelineScrollPositionStore {
      *     identities match -> native holder belongs to this List and can
      *     safely preserve the live viewport during refresh.
      */
+
+    // kkab 28/09/2026
+        /*
     String previousIdentity =
             NATIVE_LIST_IDENTITIES.put(timelineName, normalizedIdentity);
 
     boolean useInMemory = normalizedIdentity.equals(previousIdentity);
+    */
+    
+    String previousIdentity =
+        NATIVE_LIST_IDENTITIES.get(timelineName);
+
+boolean useInMemory = normalizedIdentity.equals(previousIdentity);
 
     if (NewXLogger.isLoggingEnabled()) {
         NewXLogger.logger(
@@ -467,7 +476,37 @@ private static String normalizeIdentity(@Nullable String identity) {
 private static boolean isListTimeline(String timelineName) {
     return timelineName.contains("LIST");
 }
+
+public static boolean isListTimeline(Enum<?> timeline) {
+    return timeline != null && isListTimeline(timeline.name());
+}
+
+public static void rememberInMemoryPosition(
+        Enum<?> timeline,
+        @Nullable String identity
+) {
+    String timelineName = timeline == null ? null : timeline.name();
+
+    if (timelineName == null || !isListTimeline(timelineName)) {
+        return;
+    }
+
+    String normalizedIdentity = normalizeIdentity(identity);
+    if (normalizedIdentity == null) {
+        return;
+    }
+
+    NATIVE_LIST_IDENTITIES.put(timelineName, normalizedIdentity);
+
+    if (NewXLogger.isLoggingEnabled()) {
+        NewXLogger.logger(
+                "NewX in-memory-mark timeline=" + timelineName
+                        + " identity=" + normalizedIdentity
+        );
+    }
+}
 //kkab 25/06/2026
+    
 
     private static boolean isHomeTimeline(String timelineName) {
         return "FOR_YOU".equals(timelineName) || "FOLLOWING".equals(timelineName)
