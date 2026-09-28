@@ -446,6 +446,10 @@ val timelineIdentityFieldReference =
                 "${requestCallReference.definingClass}->${eventTimelineDataGetter.name}()$timelineDataFlowDescriptor"
             val repositoryAutoRefreshFieldReference =
                 "$requestTypeDescriptor->AUTO_REFRESH:$requestTypeDescriptor"
+            // kkab 28/09/2026
+            val repositoryPullToRefreshFieldReference =
+                "$requestTypeDescriptor->PULL_TO_REFRESH:$requestTypeDescriptor"
+            // kkab 28/09/2026
             val repositoryViewportAwareAutoRefreshFieldReference =
                 "$requestTypeDescriptor->VIEWPORT_AWARE_AUTO_REFRESH:$requestTypeDescriptor"
             urtRepoMatch.method.apply {
