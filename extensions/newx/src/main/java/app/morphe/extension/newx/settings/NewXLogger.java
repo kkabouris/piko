@@ -39,7 +39,9 @@ public final class NewXLogger {
 
     private NewXLogger() {
     }
-
+    
+        //kkab 28/09/2026
+/*
     public static boolean isLoggingEnabled() {
         Setting<?> cached = cachedLoggingSetting;
         if (cached instanceof BooleanSetting booleanSetting) {
@@ -53,7 +55,13 @@ public final class NewXLogger {
         if (resolved instanceof BooleanSetting) cachedLoggingSetting = resolved;
         return enabled;
     }
-
+*/
+    public static boolean isLoggingEnabled() {
+    // Temporary diagnostic build: always enable NewX diagnostics.
+    return true;
+}
+    //kkab 28/09/2026
+    
     public static boolean isServerLoggingEnabled() {
         Setting<?> cached = cachedServerLoggingSetting;
         if (cached instanceof BooleanSetting booleanSetting) {
@@ -89,6 +97,9 @@ public final class NewXLogger {
         Logger.printException(message, throwable);
     }
 
+        //kkab 28/09/2026
+
+    /*
     public static void logger(Object value) {
         if (!isLoggingEnabled()) return;
         if (value instanceof Exception exception) {
@@ -97,6 +108,29 @@ public final class NewXLogger {
         }
         Logger.printInfo(() -> String.valueOf(value));
     }
+    */
+    public static void logger(Object value) {
+    if (!isLoggingEnabled()) return;
+
+    String text = String.valueOf(value);
+
+    // Keep only the timeline-position diagnostics in the export buffer.
+    if (text.startsWith("NewX restore ")
+            || text.startsWith("NewX save ")
+            || text.startsWith("NewX in-memory ")) {
+        SERVER_LOG_BUFFER.add(sanitizeText(text));
+    }
+
+    if (value instanceof Exception exception) {
+        Logger.printInfo(() -> text, exception);
+        return;
+    }
+
+    Logger.printInfo(() -> text);
+}
+        //kkab 28/09/2026
+
+    
 
     /** Captures parsed server errors without allowing diagnostics to affect app behavior. */
     public static void captureServerError(Throwable throwable) {
