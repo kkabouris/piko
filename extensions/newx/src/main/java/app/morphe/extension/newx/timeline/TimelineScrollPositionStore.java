@@ -12,6 +12,10 @@ import app.morphe.extension.newx.settings.NewXLogger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.newx.settings.SettingsRegistry;
 
+//kkab 28/09/2026
+import java.util.concurrent.ConcurrentHashMap;
+//kkab 28/09/2026
+
 public final class TimelineScrollPositionStore {
     private static final String PREFERENCES_NAME = "piko_newx_timeline_positions";
     private static final String RESTORE_TIMELINE_POSITION_SETTING =
@@ -21,10 +25,14 @@ public final class TimelineScrollPositionStore {
     private static final String INDEX_SUFFIX = ".index";
     private static final String OFFSET_SUFFIX = ".offset";
     private static final String PROFILE_KEY_PREFIX = "profile.";
+    
     //kkab 25/09/2026
     private static final String SECONDARY_KEY_PREFIX = "secondary.";
     private static final String LIST_KEY_PREFIX = "list.";
+    private static final ConcurrentHashMap<String, String> NATIVE_LIST_IDENTITIES =
+    new ConcurrentHashMap<>();
     //kkab 25/09/2026
+    
     private static final Object SAVE_LOCK = new Object();
     private static volatile SharedPreferences cachedPreferences;
     private static SharedPreferences lastSavedPreferences;
@@ -337,6 +345,60 @@ public final class TimelineScrollPositionStore {
         }
         return useInMemory;
     }
+
+    public static boolean useInMemoryPosition(
+        Enum<?> timeline,
+        @Nullable String identity
+) {
+    String timelineName = timeline == null ? null : timeline.name();
+
+    if (timelineName == null) {
+        return false;
+    }
+
+    // Profile timelines keep using their existing persistent scoped storage.
+    if (timelineName.startsWith("USER_PROFILE_")) {
+        return false;
+    }
+
+    // Normal timelines such as Following continue using X's native holder.
+    if (!isListTimeline(timelineName)) {
+        return true;
+    }
+
+    String normalizedIdentity = normalizeIdentity(identity);
+    if (normalizedIdentity == null) {
+        return false;
+    }
+
+    /*
+     * X stores List positions under the timeline type (LIST_POSTS), not the
+     * individual List identity.
+     *
+     * First access to another List:
+     *     previous identity != current identity -> reject native holder.
+     *
+     * Further access to the same List:
+     *     identities match -> native holder belongs to this List and can
+     *     safely preserve the live viewport during refresh.
+     */
+    String previousIdentity =
+            NATIVE_LIST_IDENTITIES.put(timelineName, normalizedIdentity);
+
+    boolean useInMemory = normalizedIdentity.equals(previousIdentity);
+
+    if (NewXLogger.isLoggingEnabled()) {
+        NewXLogger.logger(
+                "NewX in-memory-scoped timeline=" + timelineName
+                        + " identity=" + normalizedIdentity
+                        + " previousIdentity=" + previousIdentity
+                        + " useInMemory=" + useInMemory
+        );
+    }
+
+    return useInMemory;
+}
+    
 /* kkab 25/06/2026
     static String storageKey(
             @Nullable String timelineName,
