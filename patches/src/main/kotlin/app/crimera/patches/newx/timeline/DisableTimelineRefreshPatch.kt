@@ -478,6 +478,8 @@ val timelineIdentityFieldReference =
 """
     if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
 
+    invoke-static/range {p1 .. p2}, $TIMELINE_POSITION_STORE_DESCRIPTOR->logRefreshRequest(Ljava/lang/Object;Ljava/lang/Object;)V
+
     # Manual pull-to-refresh on secondary/List timelines currently rebuilds
     # the timeline from index 0. Route only those timelines through X's
     # viewport-aware refresh mode. Home timelines keep native behaviour.
@@ -501,6 +503,10 @@ val timelineIdentityFieldReference =
     # Lists are persistent feeds but deliberately do not trust X's
     # timeline-type-only in-memory holder.
     sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
+
+    const-string v$settingRegister, "NewX PTR-CONVERT PULL_TO_REFRESH -> VIEWPORT_AWARE_AUTO_REFRESH"
+    invoke-static {v$settingRegister}, Lapp/morphe/extension/newx/settings/NewXLogger;->logger(Ljava/lang/Object;)V
+
     goto :piko_newx_refresh_urt_continue
 
     :piko_newx_refresh_urt_check_auto
@@ -563,7 +569,7 @@ val timelineIdentityFieldReference =
 
     sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
 
-    const-string v$settingRegister, "NewX PTR-CONVERT PULL_TO_REFRESH -> VIEWPORT_AWARE_AUTO_REFRESH"
+    const-string v$settingRegister, "NewX AUTO-CONVERT AUTO_REFRESH -> VIEWPORT_AWARE_AUTO_REFRESH"
     invoke-static {v$settingRegister}, Lapp/morphe/extension/newx/settings/NewXLogger;->logger(Ljava/lang/Object;)V
 
     goto :piko_newx_refresh_urt_continue
