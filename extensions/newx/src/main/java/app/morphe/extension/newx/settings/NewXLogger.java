@@ -121,6 +121,7 @@ public final class NewXLogger {
         || text.startsWith("NewX in-memory-scoped ")
         || text.startsWith("NewX scoped-enter ")
         || text.startsWith("NewX refresh-request ")
+        || text.startsWith("NewX LIST-ZERO-STACK ")
         || text.startsWith("NewX in-memory-mark ")
         || text.startsWith("NewX PTR-CONVERT "))
     {
