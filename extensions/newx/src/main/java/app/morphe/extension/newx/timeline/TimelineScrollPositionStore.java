@@ -287,6 +287,33 @@ public final class TimelineScrollPositionStore {
         }
     }
 
+    
+    //kkab 28/09/2026
+    
+    public static void logRefreshRequest(
+        Object requestType,
+        @Nullable Object cursor
+) {
+    if (!NewXLogger.isLoggingEnabled()) return;
+
+    String requestName;
+    if (requestType instanceof Enum<?> requestEnum) {
+        requestName = requestEnum.name();
+    } else {
+        requestName = String.valueOf(requestType);
+    }
+
+    // We only care about refresh-like requests for this diagnostic build.
+    if (!requestName.contains("REFRESH")) return;
+
+    NewXLogger.logger(
+            "NewX refresh-request requestType=" + requestName
+                    + " cursorNull=" + (cursor == null)
+    );
+}
+
+        //kkab 28/09/2026
+
     /**
      * Returns whether X's process-local position map should be trusted for this timeline type.
      *
