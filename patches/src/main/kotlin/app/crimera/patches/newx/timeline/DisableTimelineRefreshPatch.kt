@@ -562,6 +562,10 @@ val timelineIdentityFieldReference =
     if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
 
     sget-object p1, $repositoryViewportAwareAutoRefreshFieldReference
+
+    const-string v$settingRegister, "NewX PTR-CONVERT PULL_TO_REFRESH -> VIEWPORT_AWARE_AUTO_REFRESH"
+    invoke-static {v$settingRegister}, Lapp/morphe/extension/newx/settings/NewXLogger;->logger(Ljava/lang/Object;)V
+
     goto :piko_newx_refresh_urt_continue
 """.trimIndent(),
                     
