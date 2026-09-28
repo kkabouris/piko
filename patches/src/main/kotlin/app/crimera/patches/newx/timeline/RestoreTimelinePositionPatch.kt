@@ -490,39 +490,44 @@ val restoreTimelinePositionPatch =
                     invoke-static {v$fallbackTimelineRegister, v$fallbackRepositoryRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->restore(${ENUM_DESCRIPTOR}Ljava/lang/String;)[I
                     move-result-object v$fallbackPositionsRegister
                     if-eqz v$fallbackPositionsRegister, :piko_newx_restore_position_fallback
+
                     const/4 v${fallbackRead.register}, 0x0
                     aget v${fallbackRead.register}, v$fallbackPositionsRegister, v${fallbackRead.register}
 
-                    const/4 v$fallbackTimelineRegister, 0x1
-                    aget v$fallbackTimelineRegister, v$fallbackPositionsRegister, v$fallbackTimelineRegister
+                    # Keep fallbackTimelineRegister untouched: it still contains the Enum.
+                    # Reuse fallbackRepositoryRegister for the integer scroll offset instead.
+                    const/4 v$fallbackRepositoryRegister, 0x1
+                    aget v$fallbackRepositoryRegister, v$fallbackPositionsRegister, v$fallbackRepositoryRegister
 
-                    new-instance v$fallbackRepositoryRegister, $holderDescriptor
-                    invoke-direct {v$fallbackRepositoryRegister, v${fallbackRead.register}, v$fallbackTimelineRegister}, $holderConstructorReference
+                    # Use the original holder register for the restored holder.
+                    new-instance v$fallbackHolderRegister, $holderDescriptor
+                    invoke-direct {v$fallbackHolderRegister, v${fallbackRead.register}, v$fallbackRepositoryRegister}, $holderConstructorReference
 
-                    # Only Lists need the extra identity-scoped native holder.
+                    # fallbackTimelineRegister is still the timeline Enum here.
                     invoke-static {v$fallbackTimelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->isListTimeline($ENUM_DESCRIPTOR)Z
                     move-result v${fallbackRead.register}
                     if-eqz v${fallbackRead.register}, :piko_newx_restore_position_return_restored
 
-                    # Record which List owns the native LIST_POSTS holder.
+                    # Get this List's identity.
                     move-object/from16 v$fallbackPositionsRegister, p0
                     iget-object v$fallbackPositionsRegister, v$fallbackPositionsRegister, $repositoryField
                     invoke-interface {v$fallbackPositionsRegister}, $timelineIdentityGetterReference
                     move-result-object v$fallbackPositionsRegister
                     iget-object v$fallbackPositionsRegister, v$fallbackPositionsRegister, $timelineIdentityFieldReference
 
+                    # Mark the native LIST_POSTS holder as belonging to this specific List.
                     invoke-static {v$fallbackTimelineRegister, v$fallbackPositionsRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->rememberInMemoryPosition(${ENUM_DESCRIPTOR}Ljava/lang/String;)V
 
-                    # Install the restored List holder into X's native position map.
+                    # Install the restored holder into X's native position map.
                     move-object/from16 v$fallbackPositionsRegister, p0
                     iget-object v$fallbackPositionsRegister, v$fallbackPositionsRegister, $componentField
                     iget-object v$fallbackPositionsRegister, v$fallbackPositionsRegister, $mapField
 
-                    invoke-virtual {v$fallbackPositionsRegister, v$fallbackTimelineRegister, v$fallbackRepositoryRegister}, $CONCURRENT_HASH_MAP_DESCRIPTOR->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+                    invoke-virtual {v$fallbackPositionsRegister, v$fallbackTimelineRegister, v$fallbackHolderRegister}, $CONCURRENT_HASH_MAP_DESCRIPTOR->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
                     move-result-object v$fallbackPositionsRegister
 
                     :piko_newx_restore_position_return_restored
-                    return-object v$fallbackRepositoryRegister
+                    return-object v$fallbackHolderRegister                    
                 """.trimIndent(),
                 ExternalLabel("piko_newx_restore_position_fallback", nativeFallbackInstruction),
             )
