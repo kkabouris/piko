@@ -86,6 +86,13 @@
     <string name="piko_newx_server_logging_title">Capture server errors</string>
     <string name="piko_newx_server_logging_summary">Keeps parsed NewX server errors in memory until they are exported</string>
     <string name="piko_newx_save_server_logs_title">Save server logs</string>
+
+        //kkab 28/09/2026
+    <string name="piko_newx_save_timeline_logs_title">Save timeline logs</string>
+    <string name="piko_newx_save_timeline_logs_summary">Exports timeline position diagnostics to Download/piko-server-logs.txt</string>
+      //kkab 28/09/2026
+
+    
     <string name="piko_newx_save_server_logs_summary">Exports captured server errors to Download/piko-server-logs.txt</string>
     <string name="piko_newx_crash_app_title">Crash app</string>
     <string name="piko_newx_crash_app_summary">Immediately crashes the app to test crash logging</string>
