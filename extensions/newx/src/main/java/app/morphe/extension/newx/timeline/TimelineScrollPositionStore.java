@@ -14,6 +14,7 @@ import app.morphe.extension.newx.settings.SettingsRegistry;
 
 //kkab 28/09/2026
 import java.util.concurrent.ConcurrentHashMap;
+import android.util.Log;
 //kkab 28/09/2026
 
 public final class TimelineScrollPositionStore {
@@ -233,6 +234,29 @@ public final class TimelineScrollPositionStore {
                     false
             );
             String timelineName = timeline == null ? null : timeline.name();
+
+            //kkab 28/09/2026
+
+            if (NewXLogger.isLoggingEnabled()
+        && timelineName != null
+        && isListTimeline(timelineName)
+        && index == 0
+        && offset == 0) {
+
+    NewXLogger.logger(
+            "NewX LIST-ZERO-STACK timeline=" + timelineName
+                    + " identity=" + profileId
+                    + "\n"
+                    + Log.getStackTraceString(
+                            new Throwable("LIST_POSTS position became 0,0")
+                    )
+    );
+}
+
+
+              //kkab 28/09/2026
+
+            
             String key = storageKey(
                     timelineName,
                     profileId,
