@@ -5,6 +5,15 @@ import app.crimera.patches.newx.settings.SettingReadRegisterConstraint
 import app.crimera.patches.newx.settings.injectRead
 import app.crimera.patches.newx.settings.newXToggle
 import app.crimera.patches.newx.settings.settingStrings
+
+    //kkab 28/09/2026
+import app.crimera.patches.newx.settings.Groups
+import app.crimera.patches.newx.settings.action
+import app.crimera.patches.newx.settings.group
+import app.crimera.patches.newx.settings.newXSettings
+import app.crimera.patches.newx.utils.Constants.EXTENSION_PACKAGE
+    //kkab 28/09/2026
+
 import app.crimera.patches.newx.utils.Constants.COMPATIBILITY_NEW_X
 import app.crimera.patches.newx.utils.requireAtMostOne
 import app.crimera.patches.utils.scopedMatchAll
@@ -33,6 +42,13 @@ private const val TIMELINE_POSITION_STORE_DESCRIPTOR =
     "Lapp/morphe/extension/newx/timeline/TimelineScrollPositionStore;"
 private const val TIMELINE_REFRESH_GATE_DESCRIPTOR =
     "Lapp/morphe/extension/newx/timeline/TimelineRefreshGate;"
+
+    //kkab 28/09/2026
+
+private const val TIMELINE_LOG_EXPORT_ACTION_DESCRIPTOR =
+    "$EXTENSION_PACKAGE/settings/ServerLogExportAction;"
+
+    //kkab 28/09/2026
 
 private object NewXMainActivityOnCreateFingerprint : Fingerprint(
     definingClass = "Lcom/x/android/main/MainActivity;",
@@ -135,6 +151,22 @@ val disableTimelineRefreshPatch =
                 order = 100,
                 defaultValue = true,
             )
+
+            //kkab 28/09/2026
+                    newXSettings {
+            category(Categories.ADVANCED) {
+                group(Groups.DEBUG_TOOLS) {
+                    action(
+                        id = "newx.advanced.debug_tools.save_timeline_logs",
+                        strings = settingStrings("piko_newx_save_timeline_logs"),
+                        order = 250,
+                        handlerClassDescriptor = TIMELINE_LOG_EXPORT_ACTION_DESCRIPTOR,
+                    )
+                }
+            }
+        }
+
+            //kkab 28/09/2026
 
         execute {
             val mainActivityOnCreateMatches = NewXMainActivityOnCreateFingerprint.scopedMatchAll()
