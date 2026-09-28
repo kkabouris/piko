@@ -418,6 +418,10 @@ val restoreTimelinePositionPatch =
                     iget-object v$mapRegister, v$mapRegister, $mapField
                     invoke-virtual {v$mapRegister, v$timelineRegister, v$positionsRegister}, $CONCURRENT_HASH_MAP_DESCRIPTOR->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
                     move-result-object v$mapRegister
+                    invoke-interface {v$timelineGetterReceiverRegister}, $timelineIdentityGetterReference
+                    move-result-object v$mapRegister
+                    iget-object v$mapRegister, v$mapRegister, $timelineIdentityFieldReference
+                    invoke-static {v$timelineRegister, v$mapRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->rememberInMemoryPosition(${ENUM_DESCRIPTOR}Ljava/lang/String;)V
                 """.trimIndent(),
                 ExternalLabel("piko_newx_restore_position_continue", originalContinuation),
             )
@@ -488,10 +492,36 @@ val restoreTimelinePositionPatch =
                     if-eqz v$fallbackPositionsRegister, :piko_newx_restore_position_fallback
                     const/4 v${fallbackRead.register}, 0x0
                     aget v${fallbackRead.register}, v$fallbackPositionsRegister, v${fallbackRead.register}
+
                     const/4 v$fallbackTimelineRegister, 0x1
                     aget v$fallbackTimelineRegister, v$fallbackPositionsRegister, v$fallbackTimelineRegister
+
                     new-instance v$fallbackRepositoryRegister, $holderDescriptor
                     invoke-direct {v$fallbackRepositoryRegister, v${fallbackRead.register}, v$fallbackTimelineRegister}, $holderConstructorReference
+
+                    # Only Lists need the extra identity-scoped native holder.
+                    invoke-static {v$fallbackTimelineRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->isListTimeline($ENUM_DESCRIPTOR)Z
+                    move-result v${fallbackRead.register}
+                    if-eqz v${fallbackRead.register}, :piko_newx_restore_position_return_restored
+
+                    # Record which List owns the native LIST_POSTS holder.
+                    move-object/from16 v$fallbackPositionsRegister, p0
+                    iget-object v$fallbackPositionsRegister, v$fallbackPositionsRegister, $repositoryField
+                    invoke-interface {v$fallbackPositionsRegister}, $timelineIdentityGetterReference
+                    move-result-object v$fallbackPositionsRegister
+                    iget-object v$fallbackPositionsRegister, v$fallbackPositionsRegister, $timelineIdentityFieldReference
+
+                    invoke-static {v$fallbackTimelineRegister, v$fallbackPositionsRegister}, $TIMELINE_POSITION_STORE_DESCRIPTOR->rememberInMemoryPosition(${ENUM_DESCRIPTOR}Ljava/lang/String;)V
+
+                    # Install the restored List holder into X's native position map.
+                    move-object/from16 v$fallbackPositionsRegister, p0
+                    iget-object v$fallbackPositionsRegister, v$fallbackPositionsRegister, $componentField
+                    iget-object v$fallbackPositionsRegister, v$fallbackPositionsRegister, $mapField
+
+                    invoke-virtual {v$fallbackPositionsRegister, v$fallbackTimelineRegister, v$fallbackRepositoryRegister}, $CONCURRENT_HASH_MAP_DESCRIPTOR->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+                    move-result-object v$fallbackPositionsRegister
+
+                    :piko_newx_restore_position_return_restored
                     return-object v$fallbackRepositoryRegister
                 """.trimIndent(),
                 ExternalLabel("piko_newx_restore_position_fallback", nativeFallbackInstruction),
