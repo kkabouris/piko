@@ -474,6 +474,8 @@ val timelineIdentityFieldReference =
 """
     if-eqz v$settingRegister, :piko_newx_refresh_urt_continue
 
+    invoke-static/range {p1 .. p2}, $TIMELINE_POSITION_STORE_DESCRIPTOR->logRefreshRequest(Ljava/lang/Object;Ljava/lang/Object;)V
+
     sget-object v$settingRegister, $repositoryAutoRefreshFieldReference
     if-ne p1, v$settingRegister, :piko_newx_refresh_urt_continue
 
