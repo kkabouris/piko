@@ -235,28 +235,7 @@ public final class TimelineScrollPositionStore {
             );
             String timelineName = timeline == null ? null : timeline.name();
 
-            //kkab 28/09/2026
-
-            if (NewXLogger.isLoggingEnabled()
-        && timelineName != null
-        && isListTimeline(timelineName)
-        && index == 0
-        && offset == 0) {
-
-    NewXLogger.logger(
-            "NewX LIST-ZERO-STACK timeline=" + timelineName
-                    + " identity=" + profileId
-                    + "\n"
-                    + Log.getStackTraceString(
-                            new Throwable("LIST_POSTS position became 0,0")
-                    )
-    );
-}
-
-
-              //kkab 28/09/2026
-
-            
+         
             String key = storageKey(
                     timelineName,
                     profileId,
@@ -339,8 +318,12 @@ public final class TimelineScrollPositionStore {
     if (!requestName.contains("REFRESH")) return;
 
     NewXLogger.logger(
-            "NewX refresh-request requestType=" + requestName
-                    + " cursorNull=" + (cursor == null)
+            "NewX refresh-request type=" + requestName
+                    + " argNull=" + (argument == null)
+                    + " argClass="
+                    + (argument == null
+                    ? "null"
+                    : argument.getClass().getName())
     );
 }
 
