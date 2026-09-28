@@ -121,6 +121,7 @@ public final class NewXLogger {
         || text.startsWith("NewX in-memory-scoped ")
         || text.startsWith("NewX scoped-enter ")
         || text.startsWith("NewX refresh-request ")
+        || text.startsWith("NewX in-memory-mark ")
         || text.startsWith("NewX PTR-CONVERT "))
     {
         SERVER_LOG_BUFFER.add(sanitizeText(text));
